@@ -1,0 +1,26 @@
+---
+- name: Deploy Docker App to EC2
+  hosts: app_server
+  become: yes
+  vars:
+    ecr_repo_url: "{{ ecr_repo }}"
+    image_tag: latest
+  tasks:
+    - name: Install Docker if not present
+      package:
+        name: docker
+        state: present
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+
+    - name: Log in to ECR
+      command: aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin {{ ecr_repo_url }}
+
+    - name: Pull Docker image
+      command: docker pull {{ ecr_repo_url }}:{{ image_tag }}
+
+    - name: Run Docker container
+      command: docker run -d -p 8080:8080 --name my-app {{ ecr_repo_url }}:{{ image_tag }}
